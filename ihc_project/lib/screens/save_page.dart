@@ -26,6 +26,13 @@ class _SavePageState extends State<SavePage> {
     'cash': Icon(Icons.money, color: Colors.green),
   };
 
+  final Map<String, String> _paymentMethodLabels = {
+    'credit_card': 'Cartão de Crédito',
+    'debit_card': 'Cartão de Débito',
+    'pix': 'PIX',
+    'cash': 'Dinheiro',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -71,23 +78,69 @@ class _SavePageState extends State<SavePage> {
     super.dispose();
   }
 
-  void _saveExpense() {
+  void _saveExpense() async {
     if (_formKey.currentState!.validate()) {
       double amount = double.parse(_amountController.text);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gasto de R\$${amount.toStringAsFixed(2)} salvo!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.greenAccent.shade700,
-        ),
-      );
-
-      _amountController.clear();
-      setState(() {
-        _selectedCategory = null;
-        _selectedPaymentMethod = null;
+      // Corpo da requisição
+      final body = json.encode({
+        'value': amount,
+        'paymentMethod': _selectedPaymentMethod == 'credit_card'
+            ? 'CREDIT_CARD'
+            : _selectedPaymentMethod == 'debit_card'
+                ? 'DEBIT_CARD'
+                : _selectedPaymentMethod == 'pix'
+                    ? 'PIX'
+                    : 'CASH',
+        'category': {
+          'id': _categories.indexOf(_selectedCategory!) +
+              1 // Assumindo que o ID é baseado na posição
+        }
       });
+
+      final token = await _getToken();
+      if (token == null) {
+        print('Token não encontrado. Faça o login novamente.');
+        return;
+      }
+
+      final url = Uri.parse(
+          'https://finance-tracker-sgyh.onrender.com/expense/register');
+      final headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      };
+
+      // Enviar a requisição POST
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        // Sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gasto de R\$${amount.toStringAsFixed(2)} salvo!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.greenAccent.shade700,
+          ),
+        );
+
+        // Limpar campos
+        _amountController.clear();
+        setState(() {
+          _selectedCategory = null;
+          _selectedPaymentMethod = null;
+        });
+      } else {
+        // Tratamento de erros
+        print(
+            'Erro ao salvar despesa: ${response.statusCode} - ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar despesa: ${response.body}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -226,11 +279,4 @@ class _SavePageState extends State<SavePage> {
       ),
     );
   }
-
-  final Map<String, String> _paymentMethodLabels = {
-    'credit_card': 'Cartão de Crédito',
-    'debit_card': 'Cartão de Débito',
-    'pix': 'PIX',
-    'cash': 'Dinheiro',
-  };
 }

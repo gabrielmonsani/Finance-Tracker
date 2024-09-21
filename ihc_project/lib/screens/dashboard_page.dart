@@ -21,6 +21,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String userName = '';
   final storage = FlutterSecureStorage();
+  List<Map<String, dynamic>> categoriesData = []; // Para armazenar os dados das categorias
 
   @override
   void initState() {
@@ -30,14 +31,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadUserName() async {
     try {
-      // Decodificar o token para extrair o email
       Map<String, dynamic> tokenData = JwtDecoder.decode(widget.token);
       String email = tokenData['sub'] ?? '';
 
       if (email.isNotEmpty) {
-        // Fazer a requisição para obter os dados do usuário
-        final url = Uri.parse(
-            'https://finance-tracker-sgyh.onrender.com/user/get/$email');
+        final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/user/get/$email');
         final headers = {
           "Content-Type": "application/json",
           "Authorization": "Bearer ${widget.token}",
@@ -61,25 +59,71 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<List<PieChartSectionData>> _fetchCategoryValues() async {
+    try {
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
+      final headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${widget.token}",
+      };
+
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List<PieChartSectionData> sections = [];
+        categoriesData = []; // Limpar dados anteriores
+
+        for (var category in data['categories']) {
+          double percentage = category['percentage'];
+          String name = category['name'];
+
+          sections.add(
+            PieChartSectionData(
+              color: Colors.primaries[sections.length % Colors.primaries.length],
+              value: percentage,
+              title: '${percentage.toString()}%',
+              radius: 100,
+            ),
+          );
+
+          // Adicionar dados da categoria à lista
+          categoriesData.add({
+            'name': name,
+            'percentage': percentage,
+            'color': Colors.primaries[sections.length % Colors.primaries.length],
+          });
+        }
+
+        return sections;
+      } else {
+        print('Erro ao carregar dados das categorias: ${response.body}');
+        throw Exception('Erro ao carregar dados');
+      }
+    } catch (e) {
+      print('Erro ao carregar dados das categorias: $e');
+      throw e;
+    }
+  }
+
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Sair da Conta'),
-          content:
-              const Text('Você tem certeza de que deseja sair da sua conta?'),
+          content: const Text('Você tem certeza de que deseja sair da sua conta?'),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
               onPressed: () {
-                Navigator.of(context).pop(false); // Retorna falso
+                Navigator.of(context).pop(false);
               },
             ),
             TextButton(
               child: const Text('Sair'),
               onPressed: () {
-                Navigator.of(context).pop(true); // Retorna verdadeiro
+                Navigator.of(context).pop(true);
               },
             ),
           ],
@@ -97,7 +141,7 @@ class _DashboardPageState extends State<DashboardPage> {
         MaterialPageRoute(
           builder: (context) => const LoginPage(),
         ),
-        (Route<dynamic> route) => false, // Remover todas as rotas anteriores
+        (Route<dynamic> route) => false,
       );
     }
   }
@@ -158,19 +202,20 @@ class _DashboardPageState extends State<DashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const CategoriesPage()),
+                  MaterialPageRoute(builder: (context) => const CategoriesPage()),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.attach_money),
               title: const Text('Despesas'),
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const SavePage()),
                 );
+                // Atualiza o gráfico ao voltar
+                setState(() {});
               },
             ),
             ListTile(
@@ -213,46 +258,71 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: PieChart(
-                    PieChartData(
-                      sections: [
-                        PieChartSectionData(
-                            color: Colors.blue,
-                            value: 40,
-                            title: '40%',
-                            radius: 100),
-                        PieChartSectionData(
-                            color: Colors.red,
-                            value: 30,
-                            title: '30%',
-                            radius: 100),
-                        PieChartSectionData(
-                            color: Colors.green,
-                            value: 20,
-                            title: '20%',
-                            radius: 100),
-                        PieChartSectionData(
-                            color: Colors.orange,
-                            value: 10,
-                            title: '10%',
-                            radius: 100),
+              child: FutureBuilder<List<PieChartSectionData>>(
+                future: _fetchCategoryValues(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Erro: ${snapshot.error}'));
+                  } else if (snapshot.hasData) {
+                    final sections = snapshot.data!;
+                    print('Dados retornados: $sections');
+
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(20.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: PieChart(
+                                PieChartData(
+                                  sections: sections,
+                                  borderData: FlBorderData(show: false),
+                                  sectionsSpace: 0,
+                                  centerSpaceRadius: 60,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Lista de categorias
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: categoriesData.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 5.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    color: categoriesData[index]['color'],
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    '${categoriesData[index]['name']} - ${categoriesData[index]['percentage']}%',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ],
-                      borderData: FlBorderData(show: false),
-                      sectionsSpace: 0,
-                      centerSpaceRadius: 60,
-                    ),
-                  ),
-                ),
+                    );
+                  } else {
+                    return Center(child: Text('Nenhum dado encontrado.'));
+                  }
+                },
               ),
             ),
-            const SizedBox(height: 80),
           ],
         ),
       ),
