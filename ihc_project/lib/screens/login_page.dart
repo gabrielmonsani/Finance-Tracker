@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ihc_project/screens/register_page.dart';
-import 'dashboard_page.dart';
+import 'package:ihc_project/screens/dashboard_page.dart'; // Importação da DashboardPage
 import '../widgets/logo_and_app_name.dart';
 
 class LoginPage extends StatefulWidget {
@@ -24,8 +24,7 @@ class _LoginPageState extends State<LoginPage> {
       isLoading = true;
     });
 
-    final url =
-        Uri.parse('https://finance-tracker-sgyh.onrender.com/auth/login');
+    final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/auth/login');
     final headers = {"Content-Type": "application/json"};
 
     final body = json.encode({
@@ -117,8 +116,7 @@ class _LoginPageState extends State<LoginPage> {
                 : ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 100, vertical: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

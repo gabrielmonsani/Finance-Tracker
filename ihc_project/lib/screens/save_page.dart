@@ -130,10 +130,12 @@ class _SavePageState extends State<SavePage> {
           _selectedCategory = null;
           _selectedPaymentMethod = null;
         });
+
+        // Voltar para a tela de despesas
+        Navigator.pop(context);
       } else {
         // Tratamento de erros
-        print(
-            'Erro ao salvar despesa: ${response.statusCode} - ${response.body}');
+        print('Erro ao salvar despesa! ${response.statusCode} - ${response.body}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao salvar despesa: ${response.body}'),
@@ -148,7 +150,7 @@ class _SavePageState extends State<SavePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Despesas'),
+        title: const Text('Lançar Gastos'),
         backgroundColor: Colors.green.shade600,
         elevation: 0,
       ),
@@ -174,12 +176,12 @@ class _SavePageState extends State<SavePage> {
                 },
                 decoration: InputDecoration(
                   labelText: 'Categoria',
-                  labelStyle: TextStyle(color: Colors.green.shade600),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.green.shade600),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.green.shade600), // Borda verde
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),

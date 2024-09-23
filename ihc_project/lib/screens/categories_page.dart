@@ -23,8 +23,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Future<void> _loadCategories() async {
     try {
       final token = await _getToken();
-      final url =
-          Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
 
       final headers = {
         "Content-Type": "application/json",
@@ -38,8 +37,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         final List<dynamic> categories = data['categories'];
 
         setState(() {
-          _categories = List<Category>.from(
-              categories.map((item) => Category.fromJson(item)));
+          _categories = List<Category>.from(categories.map((item) => Category.fromJson(item)));
         });
       } else {
         print('Erro ao carregar categorias: ${response.body}');
@@ -54,16 +52,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   void _addCategory(String category) async {
-    if (_categories
-        .any((c) => c.name.toLowerCase() == category.toLowerCase())) {
+    if (_categories.any((c) => c.name.toLowerCase() == category.toLowerCase())) {
       _showConfirmationMessage('O nome da categoria já está em uso!');
       return;
     }
 
     try {
       final token = await _getToken();
-      final url = Uri.parse(
-          'https://finance-tracker-sgyh.onrender.com/category/create');
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/create');
 
       final headers = {
         "Content-Type": "application/json",
@@ -76,8 +72,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (response.statusCode == 201) {
         await _loadCategories();
-        _showConfirmationMessage('Categoria criada com sucesso!',
-            color: Colors.green); // Mensagem de sucesso em verde
+        _showConfirmationMessage('Categoria criada com sucesso!', color: Colors.green);
       } else {
         print('Erro ao adicionar categoria: ${response.body}');
       }
@@ -112,8 +107,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
             TextButton(
               onPressed: () {
                 final newCategory = controller.text.trim();
-                if (newCategory.isNotEmpty &&
-                    newCategory != currentCategory.name) {
+                if (newCategory.isNotEmpty && newCategory != currentCategory.name) {
                   _updateCategory(currentCategory.id, newCategory, index);
                 }
                 Navigator.of(context).pop();
@@ -129,8 +123,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Future<void> _updateCategory(int id, String newCategory, int index) async {
     try {
       final token = await _getToken();
-      final url = Uri.parse(
-          'https://finance-tracker-sgyh.onrender.com/category/update/$id');
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/update/$id');
 
       final headers = {
         "Content-Type": "application/json",
@@ -159,8 +152,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Excluir Categoria'),
-          content:
-              const Text('Tem certeza de que deseja excluir esta categoria?'),
+          content: const Text('Tem certeza de que deseja excluir esta categoria?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -184,8 +176,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Future<void> _removeCategory(int id, int index) async {
     try {
       final token = await _getToken();
-      final url = Uri.parse(
-          'https://finance-tracker-sgyh.onrender.com/category/delete/$id');
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/delete/$id');
 
       final headers = {
         "Content-Type": "application/json",
@@ -198,8 +189,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         setState(() {
           _categories.removeAt(index);
         });
-        _showConfirmationMessage('Categoria excluída com sucesso!',
-            color: Colors.red); // Mensagem de sucesso em verde
+        _showConfirmationMessage('Categoria excluída com sucesso!', color: Colors.red);
       } else {
         print('Erro ao remover categoria: ${response.body}');
       }
@@ -230,7 +220,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         child: _categories.isEmpty
             ? const Center(
                 child: Text(
-                  'Nenhuma categoria criada ainda.',
+                  'Nenhuma categoria criada ainda!',
                   style: TextStyle(fontSize: 18),
                 ),
               )
@@ -240,10 +230,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     child: ListView.builder(
                       itemCount: _categories.length,
                       itemBuilder: (context, index) {
-                        return CategoryTile(
-                          title: _categories[index].name,
-                          onEdit: () => _editCategory(index),
-                          onDelete: () => _deleteCategory(index),
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.green),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: CategoryTile(
+                            title: _categories[index].name,
+                            onEdit: () => _editCategory(index),
+                            onDelete: () => _deleteCategory(index),
+                          ),
                         );
                       },
                     ),
@@ -323,27 +320,24 @@ class CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 18),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: onEdit,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: onDelete,
-            ),
-          ],
-        ),
+    return ListTile(
+      contentPadding: const EdgeInsets.all(16),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 18),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.blue),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }

@@ -1,9 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:ihc_project/screens/expense_page.dart';
 import 'package:ihc_project/screens/account_page.dart';
 import 'package:ihc_project/screens/categories_page.dart';
-import 'package:ihc_project/screens/save_page.dart';
 import 'package:ihc_project/screens/login_page.dart';
 import 'dart:convert';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -21,12 +21,24 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   String userName = '';
   final storage = FlutterSecureStorage();
-  List<Map<String, dynamic>> categoriesData = []; // Para armazenar os dados das categorias
+  List<Map<String, dynamic>> categoriesData = [];
+  double totalValue = 0; // Variável de estado para o valor total
+  double rotationAngle = 0; // Para animação de rotação
+
+  // Lista de 25 tons de verde
+  final List<Color> categoryColors = [
+    Color(0xFF81C784), Color(0xFF66BB6A), Color(0xFF4CAF50), Color(0xFF388E3C), Color(0xFF2E7D32),
+    Color(0xFF1B5E20), Color(0xFFA5D6A7), Color(0xFF43A047), Color(0xFF76D275), Color(0xFF4C9A2A),
+    Color(0xFF7CB342), Color(0xFF8BC34A), Color(0xFF9CCC65), Color(0xFFAED581), Color(0xFFC5E1A5),
+    Color(0xFFCDDC39), Color(0xFFD4E157), Color(0xFFE6EE9C), Color(0xFF33691E), Color(0xFF558B2F),
+    Color(0xFF689F38), Color(0xFF8BC34A), Color(0xFFAED581), Color(0xFF558B2F), Color(0xFF6D4C41)
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+    _fetchCategoryValues();
   }
 
   Future<void> _loadUserName() async {
@@ -46,7 +58,7 @@ class _DashboardPageState extends State<DashboardPage> {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           setState(() {
-            userName = data['name'] ?? '';
+            userName = data['name']?.split(' ')[0] ?? ''; // Exibe somente o primeiro nome
           });
         } else {
           print('Erro ao carregar dados do usuário: ${response.body}');
@@ -72,27 +84,48 @@ class _DashboardPageState extends State<DashboardPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         List<PieChartSectionData> sections = [];
-        categoriesData = []; // Limpar dados anteriores
+        categoriesData = [];
+        
+        totalValue = 0; // Resetar totalValue
 
+        // Calcular o total
         for (var category in data['categories']) {
-          double percentage = category['percentage'];
-          String name = category['name'];
+          totalValue += category['value'];
+        }
 
+        if (totalValue == 0) {
+          // Se não houver categorias, retorna uma seção cinza
           sections.add(
             PieChartSectionData(
-              color: Colors.primaries[sections.length % Colors.primaries.length],
-              value: percentage,
-              title: '${percentage.toString()}%',
+              color: Colors.grey,
+              value: 0,
+              title: '0%', // Exibir 0%
               radius: 100,
             ),
           );
+        } else {
+          for (var category in data['categories']) {
+            double value = category['value'];
+            String name = category['name'];
+            Color color = categoryColors[sections.length % categoryColors.length];
+            
+            double percentage = (value / totalValue) * 100;
 
-          // Adicionar dados da categoria à lista
-          categoriesData.add({
-            'name': name,
-            'percentage': percentage,
-            'color': Colors.primaries[sections.length % Colors.primaries.length],
-          });
+            sections.add(
+              PieChartSectionData(
+                color: color,
+                value: value,
+                title: '${percentage.toStringAsFixed(2)}%', // Exibir a porcentagem com 2 casas decimais
+                radius: 100,
+              ),
+            );
+
+            categoriesData.add({
+              'name': name,
+              'value': value,
+              'color': color,
+            });
+          }
         }
 
         return sections;
@@ -132,18 +165,39 @@ class _DashboardPageState extends State<DashboardPage> {
     );
 
     if (shouldLogout == true) {
-      // Limpar o token armazenado de forma segura
       await storage.delete(key: 'auth_token');
-
-      // Redirecionar para a página de login
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const LoginPage(),
-        ),
+        MaterialPageRoute(builder: (context) => const LoginPage()),
         (Route<dynamic> route) => false,
       );
     }
+  }
+
+  Future<void> _refreshPage() async {
+    await _loadUserName(); // Recarrega o nome do usuário
+    await _fetchCategoryValues(); // Recarrega os valores das categorias
+    setState(() {
+      rotationAngle += 360; // Atualiza o ângulo de rotação
+    }); // Atualiza a interface da tela
+  }
+
+  Widget _buildCircularIcon(IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        // Abre a Drawer ao clicar no ícone
+        Scaffold.of(context).openEndDrawer();
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(
+          color: Colors.green,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white),
+      ),
+    );
   }
 
   @override
@@ -152,11 +206,11 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         backgroundColor: Colors.green,
         automaticallyImplyLeading: false,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.account_balance_wallet, size: 40, color: Colors.white),
-            SizedBox(width: 10),
-            Text(
+            _buildCircularIcon(Icons.account_balance_wallet), // Ícone da carteira
+            const SizedBox(width: 10),
+            const Text(
               'FinanceTracker',
               style: TextStyle(
                 fontSize: 20,
@@ -166,6 +220,22 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh), // Ícone de atualização
+            onPressed: _refreshPage, // Atualiza a página ao clicar
+          ),
+          Builder(
+            builder: (context) {
+              return IconButton(
+                icon: const Icon(Icons.menu), // Ícone de menu
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer(); // Abre a Drawer ao clicar
+                },
+              );
+            },
+          ),
+        ],
       ),
       endDrawer: Drawer(
         child: ListView(
@@ -179,9 +249,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   const Icon(Icons.person, size: 80, color: Colors.white),
                   const SizedBox(height: 10),
                   Text(
-                    userName.isEmpty ? 'Carregando...' : userName,
+                    userName.isEmpty ? 'Carregando...' : 'Olá, ${userName}',
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -189,15 +259,16 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
             ),
+            
             ListTile(
-              leading: const Icon(Icons.home),
+              leading: _buildCircularIcon(Icons.home),
               title: const Text('Início'),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.category),
+              leading: _buildCircularIcon(Icons.category),
               title: const Text('Categorias'),
               onTap: () {
                 Navigator.push(
@@ -207,35 +278,30 @@ class _DashboardPageState extends State<DashboardPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.attach_money),
+              leading: _buildCircularIcon(Icons.attach_money),
               title: const Text('Despesas'),
-              onTap: () async {
-                await Navigator.push(
+              onTap: () {
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SavePage()),
+                  MaterialPageRoute(builder: (context) => ExpensePage()),
                 );
-                // Atualiza o gráfico ao voltar
-                setState(() {});
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person),
+              leading: _buildCircularIcon(Icons.person),
               title: const Text('Minha Conta'),
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AccountPage(
-                      userName: userName,
-                      userEmail: '', // Ajuste conforme necessário
-                    ),
+                    builder: (context) => AccountPage(userName: userName, userEmail: ''),
                   ),
                 );
               },
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout),
+              leading: const Icon(Icons.logout), // Mantenha o ícone aqui sem círculo
               title: const Text('Sair'),
               onTap: _confirmLogout,
             ),
@@ -247,79 +313,71 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            Text(
-              'Bem-vindo(a), $userName!',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Expanded(
               child: FutureBuilder<List<PieChartSectionData>>(
                 future: _fetchCategoryValues(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Erro: ${snapshot.error}'));
-                  } else if (snapshot.hasData) {
-                    final sections = snapshot.data!;
-                    print('Dados retornados: $sections');
+                    return const Text('Erro ao carregar os dados.');
+                  }
 
-                    return Column(
-                      children: [
-                        Expanded(
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(20.0),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: PieChart(
-                                PieChartData(
-                                  sections: sections,
-                                  borderData: FlBorderData(show: false),
-                                  sectionsSpace: 0,
-                                  centerSpaceRadius: 60,
-                                ),
+                  // Exibe a mensagem quando não há categorias
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Você ainda não possui nenhuma categoria criada!',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: rotationAngle - 360, end: rotationAngle),
+                        duration: const Duration(milliseconds: 500),
+                        builder: (context, value, child) {
+                          return Container(
+                            height: 300, // Defina uma altura específica para o gráfico
+                            child: PieChart(
+                              PieChartData(
+                                sections: snapshot.data!,
+                                centerSpaceRadius: 50,
+                                sectionsSpace: 2,
+                                startDegreeOffset: value,
                               ),
                             ),
-                          ),
-                        ),
-                        // Lista de categorias
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 60),
+                      Expanded(
+                        child: ListView.builder(
                           itemCount: categoriesData.length,
                           itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 5.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 20,
-                                    height: 20,
-                                    color: categoriesData[index]['color'],
+                            var category = categoriesData[index];
+                            return Card(
+                              color: category['color'],
+                              child: ListTile(
+                                title: Text(category['name']),
+                                trailing: Text(
+                                  'R\$ ${category['value'].toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '${categoriesData[index]['name']} - ${categoriesData[index]['percentage']}%',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ],
+                                ),
                               ),
                             );
                           },
                         ),
-                      ],
-                    );
-                  } else {
-                    return Center(child: Text('Nenhum dado encontrado.'));
-                  }
+                      ),
+                    ],
+                  );
                 },
               ),
             ),
