@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class CategoriesPage extends StatefulWidget {
   const CategoriesPage({super.key, required String token});
@@ -20,10 +21,27 @@ class _CategoriesPageState extends State<CategoriesPage> {
     _loadCategories();
   }
 
+  // Método para obter o token do armazenamento
+  Future<String?> _getToken() async {
+    return await storage.read(key: 'auth_token'); // Certifique-se de que 'storage' esteja definido
+  }
+
+  // Método para carregar as categorias
   Future<void> _loadCategories() async {
     try {
       final token = await _getToken();
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
+
+      if (token == null) {
+        print('Token não encontrado.');
+        return; // Se o token não estiver presente, saia do método
+      }
+
+      // Decodifica o token para extrair os dados
+      Map<String, dynamic> tokenData = JwtDecoder.decode(token);
+      final userId = tokenData['userId']; // Supondo que userId esteja no token
+
+      // Adiciona o userId na URL
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get/$userId');
 
       final headers = {
         "Content-Type": "application/json",
@@ -47,11 +65,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
     }
   }
 
-  Future<String?> _getToken() async {
-    return await storage.read(key: 'auth_token');
-  }
-
-  void _addCategory(String category) async {
+ void _addCategory(String category) async {
     if (_categories.any((c) => c.name.toLowerCase() == category.toLowerCase())) {
       _showConfirmationMessage('O nome da categoria já está em uso!');
       return;
@@ -59,7 +73,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
     try {
       final token = await _getToken();
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/create');
+
+      // Decodifica o token para extrair o userId
+      Map<String, dynamic> tokenData = JwtDecoder.decode(token!);
+      final userId = tokenData['userId']; // Supondo que userId esteja no token
+
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/create/$userId');
+      print('reuquisicao mandada com id $userId');
 
       final headers = {
         "Content-Type": "application/json",
@@ -123,7 +143,18 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Future<void> _updateCategory(int id, String newCategory, int index) async {
     try {
       final token = await _getToken();
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/update/$id');
+
+      // Verifica se o token é nulo
+      if (token == null) {
+        _showConfirmationMessage('Token de autenticação não encontrado!');
+        return; // Retorna se o token for nulo
+      }
+
+      // Decodifica o token para extrair o userId
+      Map<String, dynamic> tokenData = JwtDecoder.decode(token);
+      final userId = tokenData['userId']; // Supondo que userId esteja no token
+
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/update/$userId/$id');
 
       final headers = {
         "Content-Type": "application/json",
@@ -136,8 +167,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (response.statusCode == 200) {
         setState(() {
-          _categories[index].name = newCategory;
+          _categories[index].name = newCategory; // Atualiza o nome da categoria na lista local
         });
+        _showConfirmationMessage('Categoria atualizada com sucesso!', color: Colors.green);
       } else {
         print('Erro ao atualizar categoria: ${response.body}');
       }
@@ -176,7 +208,18 @@ class _CategoriesPageState extends State<CategoriesPage> {
   Future<void> _removeCategory(int id, int index) async {
     try {
       final token = await _getToken();
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/delete/$id');
+
+      // Verifica se o token é nulo
+      if (token == null) {
+        _showConfirmationMessage('Token de autenticação não encontrado!');
+        return; // Retorna se o token for nulo
+      }
+
+      // Decodifica o token para extrair o userId
+      Map<String, dynamic> tokenData = JwtDecoder.decode(token);
+      final userId = tokenData['userId']; // Supondo que userId esteja no token
+
+      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/delete/$userId/$id');
 
       final headers = {
         "Content-Type": "application/json",
@@ -187,7 +230,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (response.statusCode == 204) {
         setState(() {
-          _categories.removeAt(index);
+          _categories.removeAt(index); // Remove a categoria da lista local
         });
         _showConfirmationMessage('Categoria excluída com sucesso!', color: Colors.red);
       } else {
@@ -196,7 +239,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
     } catch (e) {
       print('Erro ao remover categoria: $e');
     }
-  }
+}
 
   void _showConfirmationMessage(String message, {Color? color}) {
     ScaffoldMessenger.of(context).showSnackBar(

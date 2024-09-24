@@ -20,10 +20,11 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   String userName = '';
+  String userId = ''; // Adicione a variável para armazenar o userId
   final storage = FlutterSecureStorage();
   List<Map<String, dynamic>> categoriesData = [];
-  double totalValue = 0; // Variável de estado para o valor total
-  double rotationAngle = 0; // Para animação de rotação
+  double totalValue = 0;
+  double rotationAngle = 0;// Para animação de rotação
 
   // Lista de 25 tons de verde
   final List<Color> categoryColors = [
@@ -51,10 +52,9 @@ class _DashboardPageState extends State<DashboardPage> {
     Color(0xFF8BC34A),
     Color(0xFFAED581),
     Color(0xFF558B2F),
-    Color(0xFF6D4C41)
   ];
 
-  @override
+ @override
   void initState() {
     super.initState();
     _loadUserName();
@@ -79,8 +79,7 @@ class _DashboardPageState extends State<DashboardPage> {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           setState(() {
-            userName = data['name']?.split(' ')[0] ??
-                ''; // Exibe somente o primeiro nome
+            userName = data['name']?.split(' ')[0] ?? '';
           });
         } else {
           print('Erro ao carregar dados do usuário: ${response.body}');
@@ -93,16 +92,21 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Future<List<PieChartSectionData>> _fetchCategoryValues() async {
-    try {
-      final url =
-          Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
-      final headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer ${widget.token}",
-      };
+   Future<List<PieChartSectionData>> _fetchCategoryValues() async {
+  try {
+    // Decodifica o token para extrair o userId e o email
+    Map<String, dynamic> tokenData = JwtDecoder.decode(widget.token);
+    final userId = tokenData['userId'] as int; // Converta o userId para int
+    final email = tokenData ['email']; // Supondo que o email esteja armazenado no token
 
-      final response = await http.get(url, headers: headers);
+    final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get/$userId');
+    print('reuqisicao mandada com id $userId');
+    final headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer ${widget.token}",
+    };
+
+    final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -234,8 +238,7 @@ class _DashboardPageState extends State<DashboardPage> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            _buildCircularIcon(
-                Icons.account_balance_wallet), // Ícone da carteira
+            _buildCircularIcon(Icons.account_balance_wallet), // Ícone da carteira
             const SizedBox(width: 10),
             const Text(
               'FinanceTracker',
@@ -257,8 +260,7 @@ class _DashboardPageState extends State<DashboardPage> {
               return IconButton(
                 icon: const Icon(Icons.menu), // Ícone de menu
                 onPressed: () {
-                  Scaffold.of(context)
-                      .openEndDrawer(); // Abre a Drawer ao clicar
+                  Scaffold.of(context).openEndDrawer(); // Abre a Drawer ao clicar
                 },
               );
             },
@@ -327,16 +329,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AccountPage(userName: userName, userEmail: ''),
+                    builder: (context) => AccountPage(
+                      userName: userName,
+                      userEmail: '',
+                      token: '',
+                    ),
                   ),
                 );
               },
             ),
             const Divider(),
             ListTile(
-              leading:
-                  const Icon(Icons.logout), // Mantenha o ícone aqui sem círculo
+              leading: const Icon(Icons.logout), // Mantenha o ícone aqui sem círculo
               title: const Text('Sair'),
               onTap: _confirmLogout,
             ),
@@ -356,17 +360,15 @@ class _DashboardPageState extends State<DashboardPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Center(
-                        child: Text('Erro ao carregar os dados.'));
+                    return const Center(child: Text('Erro ao carregar os dados.'));
                   }
 
                   // Exibe a mensagem quando não há categorias
                   if (categoriesData.isEmpty) {
                     return const Center(
                       child: Text(
-                        'Você ainda não possui nenhuma categoria criada!',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                        'Você ainda não possui nenhuma despesa lançada!',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     );
@@ -376,12 +378,13 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       TweenAnimationBuilder<double>(
                         tween: Tween<double>(
-                            begin: rotationAngle - 360, end: rotationAngle),
+                          begin: rotationAngle - 360,
+                          end: rotationAngle,
+                        ),
                         duration: const Duration(milliseconds: 500),
                         builder: (context, value, child) {
                           return Container(
-                            height:
-                                300, // Defina uma altura específica para o gráfico
+                            height: 300, // Defina uma altura específica para o gráfico
                             child: PieChart(
                               PieChartData(
                                 sections: snapshot.data!,
@@ -393,77 +396,25 @@ class _DashboardPageState extends State<DashboardPage> {
                           );
                         },
                       ),
+                      const SizedBox(height: 60),
                       Expanded(
-                        child: FutureBuilder<List<PieChartSectionData>>(
-                          future: _fetchCategoryValues(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            } else if (snapshot.hasError) {
-                              return const Center(
-                                  child: Text('Erro ao carregar os dados.'));
-                            }
-
-                            // Exibe a mensagem quando não há categorias
-                            if (categoriesData.isEmpty) {
-                              return const Center(
-                                child: Text(
-                                  'Você ainda não possui nenhuma despesa lançada!',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                              );
-                            }
-
-                            return Column(
-                              children: [
-                                TweenAnimationBuilder<double>(
-                                  tween: Tween<double>(
-                                      begin: rotationAngle - 360,
-                                      end: rotationAngle),
-                                  duration: const Duration(milliseconds: 500),
-                                  builder: (context, value, child) {
-                                    return Container(
-                                      height:
-                                          300, // Defina uma altura específica para o gráfico
-                                      child: PieChart(
-                                        PieChartData(
-                                          sections: snapshot.data!,
-                                          centerSpaceRadius: 50,
-                                          sectionsSpace: 2,
-                                          startDegreeOffset: value,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 60),
-                                Expanded(
-                                  child: ListView.builder(
-                                    itemCount: categoriesData.length,
-                                    itemBuilder: (context, index) {
-                                      var category = categoriesData[index];
-                                      return Card(
-                                        color: category['color'],
-                                        child: ListTile(
-                                          title: Text(category['name']),
-                                          trailing: Text(
-                                            'R\$ ${category['value'].toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
+                        child: ListView.builder(
+                          itemCount: categoriesData.length,
+                          itemBuilder: (context, index) {
+                            var category = categoriesData[index];
+                            return Card(
+                              color: category['color'],
+                              child: ListTile(
+                                title: Text(category['name']),
+                                trailing: Text(
+                                  'R\$ ${category['value'].toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              ],
+                              ),
                             );
                           },
                         ),

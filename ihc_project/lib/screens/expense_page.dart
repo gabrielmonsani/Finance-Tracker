@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ihc_project/screens/expense.dart';
 import 'package:ihc_project/screens/save_page.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class ExpensePage extends StatefulWidget {
   const ExpensePage({Key? key, required String token}) : super(key: key);
@@ -23,39 +24,46 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Future<void> _loadExpenses() async {
-    try {
-      final token = await _getToken();
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/expense/get');
+  try {
+    // Obter o token
+    final token = await _getToken();
 
-      final headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      };
+    // Decodificar o token JWT para obter o userId
+    Map<String, dynamic> tokenData = JwtDecoder.decode(token!);
+    final userId = tokenData['userId']; // Supondo que o userId está presente no token
 
-      final response = await http.get(url, headers: headers);
+    // Construir a URL com o userId extraído
+    final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/expense/user/$userId/get');
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          _expenses = data
-              .map((item) => Expense(
-                    id: item['id'],
-                    value: item['value'] ?? 0.0,
-                    paymentMethod:
-                        _translatePaymentMethod(item['paymentMethod'] ?? 'Unknown'),
-                    category: item['category'] ?? 'Unknown',
-                  ))
-              .toList()
-              .reversed
-              .toList();
-        });
-      } else {
-        _showError('Erro ao carregar despesas: ${response.body}');
-      }
-    } catch (e) {
-      _showError('Erro ao carregar despesas: $e');
+    final headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
+
+    // Fazer a requisição HTTP GET
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      setState(() {
+        _expenses = data
+            .map((item) => Expense(
+                  id: item['id'],
+                  value: item['value'] ?? 0.0,
+                  paymentMethod: _translatePaymentMethod(item['paymentMethod'] ?? 'Unknown'),
+                  category: item['category'] ?? 'Unknown',
+                ))
+            .toList()
+            .reversed
+            .toList();
+      });
+    } else {
+      _showError('Erro ao carregar despesas: ${response.body}');
     }
+  } catch (e) {
+    _showError('Erro ao carregar despesas: $e');
   }
+}
 
   Future<String?> _getToken() async {
     return await storage.read(key: 'auth_token');

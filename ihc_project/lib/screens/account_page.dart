@@ -8,7 +8,7 @@ class AccountPage extends StatefulWidget {
   final String userName;
 
   const AccountPage(
-      {super.key, required this.userName, required String userEmail});
+      {super.key, required this.userName, required String userEmail, required String token});
 
   @override
   _AccountPageState createState() => _AccountPageState();
