@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+// Substitua 'ExpensePage' pela página de despesas que você criou.
+import 'expense_page.dart';
+
 class SavePage extends StatefulWidget {
   const SavePage({super.key});
 
@@ -93,8 +96,7 @@ class _SavePageState extends State<SavePage> {
                     ? 'PIX'
                     : 'CASH',
         'category': {
-          'id': _categories.indexOf(_selectedCategory!) +
-              1 // Assumindo que o ID é baseado na posição
+          'id': _categories.indexOf(_selectedCategory!) + 1 // Assumindo que o ID é baseado na posição
         }
       });
 
@@ -131,11 +133,15 @@ class _SavePageState extends State<SavePage> {
           _selectedPaymentMethod = null;
         });
 
-        // Voltar para a tela de despesas
-        Navigator.pop(context);
+        // Redirecionar para a página de despesas
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ExpensePage(token: '',)),
+        );
       } else {
         // Tratamento de erros
-        print('Erro ao salvar despesa! ${response.statusCode} - ${response.body}');
+        print(
+            'Erro ao salvar despesa! ${response.statusCode} - ${response.body}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao salvar despesa: ${response.body}'),

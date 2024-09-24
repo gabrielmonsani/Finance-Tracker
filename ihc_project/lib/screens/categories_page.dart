@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CategoriesPage extends StatefulWidget {
-  const CategoriesPage({super.key});
+  const CategoriesPage({super.key, required String token});
 
   @override
   _CategoriesPageState createState() => _CategoriesPageState();

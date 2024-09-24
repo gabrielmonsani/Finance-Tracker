@@ -27,11 +27,31 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Lista de 25 tons de verde
   final List<Color> categoryColors = [
-    Color(0xFF81C784), Color(0xFF66BB6A), Color(0xFF4CAF50), Color(0xFF388E3C), Color(0xFF2E7D32),
-    Color(0xFF1B5E20), Color(0xFFA5D6A7), Color(0xFF43A047), Color(0xFF76D275), Color(0xFF4C9A2A),
-    Color(0xFF7CB342), Color(0xFF8BC34A), Color(0xFF9CCC65), Color(0xFFAED581), Color(0xFFC5E1A5),
-    Color(0xFFCDDC39), Color(0xFFD4E157), Color(0xFFE6EE9C), Color(0xFF33691E), Color(0xFF558B2F),
-    Color(0xFF689F38), Color(0xFF8BC34A), Color(0xFFAED581), Color(0xFF558B2F), Color(0xFF6D4C41)
+    Color(0xFF81C784),
+    Color(0xFF66BB6A),
+    Color(0xFF4CAF50),
+    Color(0xFF388E3C),
+    Color(0xFF2E7D32),
+    Color(0xFF1B5E20),
+    Color(0xFFA5D6A7),
+    Color(0xFF43A047),
+    Color(0xFF76D275),
+    Color(0xFF4C9A2A),
+    Color(0xFF7CB342),
+    Color(0xFF8BC34A),
+    Color(0xFF9CCC65),
+    Color(0xFFAED581),
+    Color(0xFFC5E1A5),
+    Color(0xFFCDDC39),
+    Color(0xFFD4E157),
+    Color(0xFFE6EE9C),
+    Color(0xFF33691E),
+    Color(0xFF558B2F),
+    Color(0xFF689F38),
+    Color(0xFF8BC34A),
+    Color(0xFFAED581),
+    Color(0xFF558B2F),
+    Color(0xFF6D4C41)
   ];
 
   @override
@@ -47,7 +67,8 @@ class _DashboardPageState extends State<DashboardPage> {
       String email = tokenData['sub'] ?? '';
 
       if (email.isNotEmpty) {
-        final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/user/get/$email');
+        final url = Uri.parse(
+            'https://finance-tracker-sgyh.onrender.com/user/get/$email');
         final headers = {
           "Content-Type": "application/json",
           "Authorization": "Bearer ${widget.token}",
@@ -58,7 +79,8 @@ class _DashboardPageState extends State<DashboardPage> {
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           setState(() {
-            userName = data['name']?.split(' ')[0] ?? ''; // Exibe somente o primeiro nome
+            userName = data['name']?.split(' ')[0] ??
+                ''; // Exibe somente o primeiro nome
           });
         } else {
           print('Erro ao carregar dados do usuário: ${response.body}');
@@ -73,7 +95,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<List<PieChartSectionData>> _fetchCategoryValues() async {
     try {
-      final url = Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
+      final url =
+          Uri.parse('https://finance-tracker-sgyh.onrender.com/category/get');
       final headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer ${widget.token}",
@@ -85,7 +108,7 @@ class _DashboardPageState extends State<DashboardPage> {
         final data = json.decode(response.body);
         List<PieChartSectionData> sections = [];
         categoriesData = [];
-        
+
         totalValue = 0; // Resetar totalValue
 
         // Calcular o total
@@ -107,15 +130,17 @@ class _DashboardPageState extends State<DashboardPage> {
           for (var category in data['categories']) {
             double value = category['value'];
             String name = category['name'];
-            Color color = categoryColors[sections.length % categoryColors.length];
-            
+            Color color =
+                categoryColors[sections.length % categoryColors.length];
+
             double percentage = (value / totalValue) * 100;
 
             sections.add(
               PieChartSectionData(
                 color: color,
                 value: value,
-                title: '${percentage.toStringAsFixed(2)}%', // Exibir a porcentagem com 2 casas decimais
+                title:
+                    '${percentage.toStringAsFixed(2)}%', // Exibir a porcentagem com 2 casas decimais
                 radius: 100,
               ),
             );
@@ -145,7 +170,8 @@ class _DashboardPageState extends State<DashboardPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Sair da Conta'),
-          content: const Text('Você tem certeza de que deseja sair da sua conta?'),
+          content:
+              const Text('Você tem certeza de que deseja sair da sua conta?'),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
@@ -208,7 +234,8 @@ class _DashboardPageState extends State<DashboardPage> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            _buildCircularIcon(Icons.account_balance_wallet), // Ícone da carteira
+            _buildCircularIcon(
+                Icons.account_balance_wallet), // Ícone da carteira
             const SizedBox(width: 10),
             const Text(
               'FinanceTracker',
@@ -230,7 +257,8 @@ class _DashboardPageState extends State<DashboardPage> {
               return IconButton(
                 icon: const Icon(Icons.menu), // Ícone de menu
                 onPressed: () {
-                  Scaffold.of(context).openEndDrawer(); // Abre a Drawer ao clicar
+                  Scaffold.of(context)
+                      .openEndDrawer(); // Abre a Drawer ao clicar
                 },
               );
             },
@@ -259,7 +287,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 ],
               ),
             ),
-            
             ListTile(
               leading: _buildCircularIcon(Icons.home),
               title: const Text('Início'),
@@ -273,7 +300,10 @@ class _DashboardPageState extends State<DashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CategoriesPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const CategoriesPage(
+                            token: '',
+                          )),
                 );
               },
             ),
@@ -283,7 +313,10 @@ class _DashboardPageState extends State<DashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ExpensePage()),
+                  MaterialPageRoute(
+                      builder: (context) => ExpensePage(
+                            token: '',
+                          )),
                 );
               },
             ),
@@ -294,14 +327,16 @@ class _DashboardPageState extends State<DashboardPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AccountPage(userName: userName, userEmail: ''),
+                    builder: (context) =>
+                        AccountPage(userName: userName, userEmail: ''),
                   ),
                 );
               },
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout), // Mantenha o ícone aqui sem círculo
+              leading:
+                  const Icon(Icons.logout), // Mantenha o ícone aqui sem círculo
               title: const Text('Sair'),
               onTap: _confirmLogout,
             ),
@@ -321,15 +356,17 @@ class _DashboardPageState extends State<DashboardPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Text('Erro ao carregar os dados.');
+                    return const Center(
+                        child: Text('Erro ao carregar os dados.'));
                   }
 
                   // Exibe a mensagem quando não há categorias
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  if (categoriesData.isEmpty) {
                     return const Center(
                       child: Text(
                         'Você ainda não possui nenhuma categoria criada!',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     );
@@ -338,11 +375,13 @@ class _DashboardPageState extends State<DashboardPage> {
                   return Column(
                     children: [
                       TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: rotationAngle - 360, end: rotationAngle),
+                        tween: Tween<double>(
+                            begin: rotationAngle - 360, end: rotationAngle),
                         duration: const Duration(milliseconds: 500),
                         builder: (context, value, child) {
                           return Container(
-                            height: 300, // Defina uma altura específica para o gráfico
+                            height:
+                                300, // Defina uma altura específica para o gráfico
                             child: PieChart(
                               PieChartData(
                                 sections: snapshot.data!,
@@ -354,24 +393,77 @@ class _DashboardPageState extends State<DashboardPage> {
                           );
                         },
                       ),
-                      const SizedBox(height: 60),
                       Expanded(
-                        child: ListView.builder(
-                          itemCount: categoriesData.length,
-                          itemBuilder: (context, index) {
-                            var category = categoriesData[index];
-                            return Card(
-                              color: category['color'],
-                              child: ListTile(
-                                title: Text(category['name']),
-                                trailing: Text(
-                                  'R\$ ${category['value'].toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                        child: FutureBuilder<List<PieChartSectionData>>(
+                          future: _fetchCategoryValues(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            } else if (snapshot.hasError) {
+                              return const Center(
+                                  child: Text('Erro ao carregar os dados.'));
+                            }
+
+                            // Exibe a mensagem quando não há categorias
+                            if (categoriesData.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  'Você ainda não possui nenhuma despesa lançada!',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                TweenAnimationBuilder<double>(
+                                  tween: Tween<double>(
+                                      begin: rotationAngle - 360,
+                                      end: rotationAngle),
+                                  duration: const Duration(milliseconds: 500),
+                                  builder: (context, value, child) {
+                                    return Container(
+                                      height:
+                                          300, // Defina uma altura específica para o gráfico
+                                      child: PieChart(
+                                        PieChartData(
+                                          sections: snapshot.data!,
+                                          centerSpaceRadius: 50,
+                                          sectionsSpace: 2,
+                                          startDegreeOffset: value,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 60),
+                                Expanded(
+                                  child: ListView.builder(
+                                    itemCount: categoriesData.length,
+                                    itemBuilder: (context, index) {
+                                      var category = categoriesData[index];
+                                      return Card(
+                                        color: category['color'],
+                                        child: ListTile(
+                                          title: Text(category['name']),
+                                          trailing: Text(
+                                            'R\$ ${category['value'].toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              ),
+                              ],
                             );
                           },
                         ),

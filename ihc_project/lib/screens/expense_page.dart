@@ -6,7 +6,7 @@ import 'package:ihc_project/screens/expense.dart';
 import 'package:ihc_project/screens/save_page.dart';
 
 class ExpensePage extends StatefulWidget {
-  const ExpensePage({Key? key}) : super(key: key);
+  const ExpensePage({Key? key, required String token}) : super(key: key);
 
   @override
   _ExpensePageState createState() => _ExpensePageState();
